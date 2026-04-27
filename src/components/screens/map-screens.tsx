@@ -1,5 +1,5 @@
-import { BOSSES } from '../data/bosses'
-import { useGameStore } from "../stores/game-store"
+import { BOSSES } from '../../data/bosses'
+import { useGameStore } from "../../stores/game-store"
 
 export default function MapScreen() {
   const floor = useGameStore((s) => s.floor)

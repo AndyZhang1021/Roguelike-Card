@@ -1,4 +1,4 @@
-export type GameScreen = 'map' | 'battle' | 'reward' | 'gameover' | 'win'
+export type GameScreen = 'entry' | 'map' | 'battle' | 'reward' | 'gameover' | 'win'
 
 export type CardType = 'attack' | 'skill' | 'power'
 

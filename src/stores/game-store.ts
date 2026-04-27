@@ -38,7 +38,7 @@ const shuffle = <T>(arr: T[]): T[] => {
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
-  screen: 'map',
+  screen: 'entry',
   floor: 1,
   player: { hp: 80, maxHp: 80, block: 0, status: {} },
   enemy: null,

@@ -1,5 +1,5 @@
-import { useGameStore } from "../stores/game-store"
-import type { Card } from "../types/game"
+import { useGameStore } from "../../stores/game-store.ts"
+import type { Card } from "../../types/game.ts"
 
 
 export default function BattleScreen() {
