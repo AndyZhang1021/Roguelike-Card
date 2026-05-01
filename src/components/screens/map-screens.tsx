@@ -9,7 +9,7 @@ export default function MapScreen() {
   const startBattle = useGameStore((s) => s.startBattle)
 
   return (
-    <div>
+    <div className="container mx-auto px-4">
       {/* 顶部状态栏 */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24, fontSize: 14 }}>
         <span>❤️ {player.hp}/{player.maxHp}</span>
