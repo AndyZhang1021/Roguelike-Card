@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useGameStore } from "../../stores/game-store.ts"
 import type { Card } from "../../types/game.ts"
 import { Layout } from "../shared/layout.tsx"
+import { Heart, Shield } from 'lucide-react';
+import { EnemyCard } from "../enemies/enemy-card.tsx"
 
 export default function BattleScreen() {
   const player = useGameStore((s) => s.player)
@@ -74,137 +76,124 @@ export default function BattleScreen() {
           {/* 战斗区 */}
           <div>
             <center className="p-8">
-              <div className="font-semibold mb-2 text-2xl uppercase">
-                {enemy.name}
-              </div>
-
-              <HpBar current={enemy.hp} max={enemy.maxHp} color="#E24B4A" />
-
+            <EnemyCard enemy={enemy} />
               <div className="text-gray-400 text-sm mt-2">
                 {enemy.hp}/{enemy.maxHp} HP · {enemy.block} block
               </div>
 
               {/* 敌人 */}
-              <div id="enemy-target">
-                <div style={{ fontSize: 80, marginBottom: 6 }}>
-                  {enemy.emoji}
-                </div>
-
-                <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
-                  Intent: ⚔️ {enemy.atk} dmg
-                </div>
-
+              {/* <div id="enemy-target">
                 {Object.entries(enemy.status).map(
                   ([k, v]) =>
                     v > 0 && (
                       <StatusBadge key={k} label={`${k} ${v}`} debuff />
                     )
                 )}
-              </div>
+              </div> */}
             </center>
           </div>
         </div>
 
-        <div className="border-t border-t-gray-200">
-          {/* 能量 + 结束回合 */}
-          <div>
-            <HpBar current={player.hp} max={player.maxHp} color="#1D9E75" />
-
-            <div className="flex items-center justify-between px-4 py-2 gap-4">
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontSize: 13, color: "#888" }}>Energy</span>
-
-                {Array.from({ length: maxEnergy }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: "50%",
-                      background: i < energy ? "#534AB7" : "#eee",
-                      border: "1px solid #ddd",
-                    }}
-                  />
-                ))}
+        <div className="flex">
+          <div className="w-1/6 flex flex-col justify-end">
+            <center>
+              <div className="rounded-full h-32 w-32 flex flex-col items-center border justify-center mb-14">
+                <p className="text-2xl"><span className="text-4xl">3</span>/{maxEnergy}</p>
+                <p>Energy</p>
               </div>
-
-              <center className="flex-1">
-                <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
-                  {player.hp}/{player.maxHp} HP · {player.block} block
+            </center>
+            {/* 能量 + 结束回合 */}
+            <div className="flex items-center gap-1 w-full border relative">
+              <div className="border rounded h-32 w-1/4"></div>
+              <div className="flex-1">
+                <p>Adventurer</p>
+                <div className="bg-sky-400 rounde-sm w-full text-white text-center relative">
+                  <Shield strokeWidth={1} stroke="black" fill="cyan" className="absolute top-1/2 left-0 -translate-y-1/2" />
+                  <p>72/80</p>
                 </div>
-              </center>
-
-              <button
-                onClick={endTurn}
-                style={{
-                  padding: "8px 18px",
-                  borderRadius: 8,
-                  border: "1px solid #ddd",
-                  background: "#fff",
-                  cursor: "pointer",
-                  fontSize: 13,
-                }}
-              >
-                End turn →
-              </button>
+                <div className="bg-red-400 rounde-sm w-full text-white text-center relative">
+                  <Heart strokeWidth={1} stroke="black" fill="red" className="absolute top-1/2 left-0 -translate-y-1/2" />
+                  <p>72/80</p>
+                </div>
+                <div className="flex gap-3 items-center mt-2">
+                  <div className="w-5 h-5 rotate-45 flex items-center justify-center border">
+                    <span className="-rotate-45 text-sm">S</span>
+                  </div>
+                  <div className="w-5 h-5 rotate-45 flex items-center justify-center border">
+                    <span className="-rotate-45 text-sm">B</span>
+                  </div>
+                  <div className="w-5 h-5 rotate-45 flex items-center justify-center border">
+                    <span className="-rotate-45 text-sm">B</span>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* <div className="flex items-center justify-between px-4 py-2 gap-4">
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <span style={{ fontSize: 13, color: "#888" }}>Energy</span>
+
+                  {Array.from({ length: maxEnergy }).map((_, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: i < energy ? "#534AB7" : "#eee",
+                        border: "1px solid #ddd",
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <center className="flex-1">
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+                    {player.hp}/{player.maxHp} HP · {player.block} block
+                  </div>
+                </center>
+              </div> */}
           </div>
 
           {/* 手牌区 */}
-          <div className="p-4 border-t border-gray-200">
-            <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>
-              Hand ({hand.length})
+          <div className="flex-1 flex flex-col justify-end">
+            <div className="p-4 -mb-10 mx-auto">
+              <div className="flex flex-wrap gap-2 justify-center">
+                {hand.map((card) => (
+                  <CardComponent
+                    key={card.id}
+                    card={card}
+                    canPlay={energy >= card.cost && !playingCard}
+                    onPlay={() => handlePlayCard(card)}
+                  />
+                ))}
+              </div>
             </div>
+            <div className="border border-b-0 h-14 w-full rounded-t-full" />
+          </div>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {hand.map((card) => (
-                <CardComponent
-                  key={card.id}
-                  card={card}
-                  canPlay={energy >= card.cost && !playingCard}
-                  onPlay={() => handlePlayCard(card)}
-                />
-              ))}
-            </div>
+          <div className="w-1/6 flex items-center justify-center">
+            <button
+              onClick={endTurn}
+              style={{
+                padding: "8px 18px",
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                background: "#fff",
+                cursor: "pointer",
+                fontSize: 13,
+              }}
+            >
+              End turn →
+            </button>
           </div>
         </div>
+
       </div>
     </Layout>
   )
 }
 
-function HpBar({
-  current,
-  max,
-  color,
-}: {
-  current: number
-  max: number
-  color: string
-}) {
-  const pct = Math.max(0, (current / max) * 100)
-
-  return (
-    <div
-      style={{
-        height: 20,
-        background: "#eee",
-        borderRadius: 3,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          width: `${pct}%`,
-          height: "100%",
-          background: color,
-          transition: "width 0.3s",
-          borderRadius: 3,
-        }}
-      />
-    </div>
-  )
-}
 
 function StatusBadge({
   label,

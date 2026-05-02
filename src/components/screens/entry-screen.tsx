@@ -1,5 +1,5 @@
 
-import Background from "../../assets/entry-background.png";
+import Background from "../../assets/background.png";
 import StartButton from "../../assets/start-button.png";
 import { useGameStore } from "../../stores/game-store";
 
