@@ -1,8 +1,8 @@
 import type { CharacterType } from "./character"
 
-export type CardType = {
-  ATTACK: 'attack',
-  SKILL: 'skill',
+export enum CardType {
+  ATTACK = 'attack',
+  SKILL = 'skill',
 }
 
 export interface Card {

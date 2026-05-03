@@ -2,10 +2,11 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { useGameStore } from "../../stores/game-store.ts"
-import type { Card } from "../../types/game.ts"
 import { Layout } from "../shared/layout.tsx"
 import { Heart, Shield } from 'lucide-react';
 import { EnemyCard } from "../enemies/enemy-card.tsx"
+import type { Card } from "../../types/card.ts";
+import { CardItem } from "../cards/card.tsx";
 
 export default function BattleScreen() {
   const player = useGameStore((s) => s.player)
@@ -160,12 +161,7 @@ export default function BattleScreen() {
             <div className="p-4 -mb-10 mx-auto">
               <div className="flex flex-wrap gap-2 justify-center">
                 {hand.map((card) => (
-                  <CardComponent
-                    key={card.id}
-                    card={card}
-                    canPlay={energy >= card.cost && !playingCard}
-                    onPlay={() => handlePlayCard(card)}
-                  />
+                  <CardItem card={card} key={card.id} />
                 ))}
               </div>
             </div>

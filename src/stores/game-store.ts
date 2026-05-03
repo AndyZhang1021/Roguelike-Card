@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { STARTER_DECK, getCard } from '../data/cards'
 import { BOSSES } from '../data/bosses'
-import type { GameScreen, Player, Enemy, Card } from "../types/game"
+import type { GameScreen, Player, Enemy } from "../types/game"
+import type { Card } from "../types/card"
 
 interface GameState {
   screen: GameScreen
