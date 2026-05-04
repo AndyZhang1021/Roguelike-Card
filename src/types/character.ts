@@ -5,4 +5,7 @@ export interface Character {
   imgUrl: string,
 }
 
-export type CharacterType = 'enemy' | 'player'
+export enum CharacterType {
+  ENEMY = 'enemy',
+  PLAYER = 'player',
+}

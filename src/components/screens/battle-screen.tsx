@@ -1,28 +1,35 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { useGameStore } from "../../stores/game-store.ts"
+import { useBattleStore } from "../../stores/battle-store.ts";
 import { Layout } from "../shared/layout.tsx"
 import { Heart, Shield } from 'lucide-react';
 import { EnemyCard } from "../enemies/enemy-card.tsx"
 import type { Card } from "../../types/card.ts";
 import { CardItem } from "../cards/card.tsx";
+import Hero from "../../assets/hero.png";
+import { IsZero } from "../../utilities/field-validation.ts";
 
-export default function BattleScreen() {
-  const player = useGameStore((s) => s.player)
-  const enemy = useGameStore((s) => s.enemy)
-  const hand = useGameStore((s) => s.hand)
-  const energy = useGameStore((s) => s.energy)
-  const maxEnergy = useGameStore((s) => s.maxEnergy)
-  const playCard = useGameStore((s) => s.playCard)
-  const endTurn = useGameStore((s) => s.endTurn)
+const BattleScreen = () => {
+  const player = useGameStore((s) => s.player);
+  const log = useBattleStore((s) => s.log);
+  const enemy = useBattleStore((s) => s.enemy);
+  const hand = useBattleStore((s) => s.hand);
+  const energy = useBattleStore((s) => s.energy);
+  const maxEnergy = useBattleStore((s) => s.maxEnergy);
+  const playCard = useBattleStore((s) => s.playCard);
+  const endTurn = useBattleStore((s) => s.endTurn);
+  const startBattle = useBattleStore((s) => s.startBattle);
+  
+  const [playingCard, setPlayingCard] = useState<Card | null>(null);
+  const hasPlayedRef = useRef(false);
 
-  const [playingCard, setPlayingCard] = useState<Card | null>(null)
-
-  if (!enemy) return null
+  if (!enemy) return startBattle();
 
   const handlePlayCard = (card: Card) => {
-    if (playingCard) return
+    if (playingCard) return;
+    hasPlayedRef.current = false;
     setPlayingCard(card)
   }
 
@@ -32,37 +39,20 @@ export default function BattleScreen() {
         <AnimatePresence>
           {playingCard && (
             <motion.div key={`flying-${playingCard.id}`}
-              initial={{
-                position: "fixed",
-                left: "50%",
-                bottom: 110,
-                x: "-50%",
-                y: 0,
-                scale: 1,
-                opacity: 1,
-                rotate: 0,
-              }}
-              animate={{
-                y: -380,
-                x: "calc(-50% + 100px)",
-                scale: 1,
-                opacity: .8,
-                rotate: 18,
-              }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
+              initial={{ position: "fixed", left: "50%", bottom: 110, x: "-50%", y: 0, scale: 1, opacity: 1, rotate: 0 }}
+              animate={{ y: -380, x: "calc(-50% + 100px)", scale: 1, opacity: .8, rotate: 18 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              style={{ width: 88, minHeight: 120, zIndex: 9999, pointerEvents: "none" }}
               onAnimationComplete={() => {
-                playCard(playingCard)
-                setPlayingCard(null)
-              }}
-              style={{
-                width: 88,
-                minHeight: 120,
-                zIndex: 9999,
-                pointerEvents: "none",
+                if (hasPlayedRef.current) return;
+                if (!playingCard) return;
+
+                hasPlayedRef.current = true;
+                playCard(playingCard);
+                setPlayingCard(null);
               }}>
-              <CardComponent card={playingCard} canPlay={true} onPlay={() => { }}
-              />
+              <CardItem card={playingCard} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -70,14 +60,14 @@ export default function BattleScreen() {
         <div className="flex-1 h-1/2">
           {/* 顶部状态栏 */}
           <div className="border-b border-gray-200 flex items-center gap-4 text-[#666] p-4">
-            <span>❤️ {player.hp}/{player.maxHp}</span>
-            <span>🛡️ {player.block}</span>
+            {/* <span>❤️ {player.hp}/{player.maxHp}</span>
+            <span>🛡️ {player.block}</span> */}
           </div>
 
           {/* 战斗区 */}
           <div>
             <center className="p-8">
-            <EnemyCard enemy={enemy} />
+              <EnemyCard enemy={enemy} />
               <div className="text-gray-400 text-sm mt-2">
                 {enemy.hp}/{enemy.maxHp} HP · {enemy.block} block
               </div>
@@ -99,22 +89,24 @@ export default function BattleScreen() {
           <div className="w-1/6 flex flex-col justify-end">
             <center>
               <div className="rounded-full h-32 w-32 flex flex-col items-center border justify-center mb-14">
-                <p className="text-2xl"><span className="text-4xl">3</span>/{maxEnergy}</p>
+                <p className="text-2xl"><span className="text-4xl">{energy}</span>/{maxEnergy}</p>
                 <p>Energy</p>
               </div>
             </center>
             {/* 能量 + 结束回合 */}
             <div className="flex items-center gap-1 w-full border relative">
-              <div className="border rounded h-32 w-1/4"></div>
+              <div className="border rounded h-32 w-20">
+                <img src={Hero} className="w-full h-full object-contain" />
+              </div>
               <div className="flex-1">
-                <p>Adventurer</p>
-                <div className="bg-sky-400 rounde-sm w-full text-white text-center relative">
+                <p className="mb-2">Adventurer</p>
+                {!IsZero(player.block) && <div className="bg-sky-400 rounde-sm w-full text-white text-center relative">
                   <Shield strokeWidth={1} stroke="black" fill="cyan" className="absolute top-1/2 left-0 -translate-y-1/2" />
-                  <p>72/80</p>
-                </div>
+                  <p>{player.block}</p>
+                </div>}
                 <div className="bg-red-400 rounde-sm w-full text-white text-center relative">
                   <Heart strokeWidth={1} stroke="black" fill="red" className="absolute top-1/2 left-0 -translate-y-1/2" />
-                  <p>72/80</p>
+                  <p>{player.hp}/{player.maxHp}</p>
                 </div>
                 <div className="flex gap-3 items-center mt-2">
                   <div className="w-5 h-5 rotate-45 flex items-center justify-center border">
@@ -129,7 +121,15 @@ export default function BattleScreen() {
                 </div>
               </div>
             </div>
-
+            <div style={{
+              background: '#f9f9f9', border: '1px solid #eee',
+              borderRadius: 8, padding: '8px 12px',
+              fontSize: 12, color: '#666',
+              maxHeight: 72, overflowY: 'auto',
+              lineHeight: 1.8,
+            }}>
+              {log.slice(0, 5).reverse().map((l, i) => <div key={i}>{l}</div>)}
+            </div>
             {/* <div className="flex items-center justify-between px-4 py-2 gap-4">
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span style={{ fontSize: 13, color: "#888" }}>Energy</span>
@@ -159,11 +159,12 @@ export default function BattleScreen() {
           {/* 手牌区 */}
           <div className="flex-1 flex flex-col justify-end">
             <div className="p-4 -mb-10 mx-auto">
-              <div className="flex flex-wrap gap-2 justify-center">
-                {hand.map((card) => (
-                  <CardItem card={card} key={card.id} />
-                ))}
-              </div>
+              <CardOnHand
+                cards={hand}
+                energy={energy}
+                playingCard={playingCard}
+                onPlayCard={handlePlayCard}
+              />
             </div>
             <div className="border border-b-0 h-14 w-full rounded-t-full" />
           </div>
@@ -190,6 +191,60 @@ export default function BattleScreen() {
   )
 }
 
+const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[], energy: number, playingCard: Card | null, onPlayCard: (card: Card) => void }) => {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>();
+  const total = cards.length;
+  const center = (total - 1) / 2;
+
+  const onClickCard = (canPlay: boolean, card: Card) => {
+    if (!canPlay) return;
+    onPlayCard(card);
+  }
+
+  return (
+    <div className="relative h-65 w-full flex justify-center">
+      <div className="relative w-full h-full">
+        {cards.filter(Boolean).map((card: any, i: number) => {
+          const offset = i - center
+
+          const spread = Math.max(50, 120 - total * 2)
+          const rotate = offset * 2
+          const y = Math.pow(offset, 2) * 2
+
+          const isHovered = hoveredIndex === i
+          const canPlay = energy >= card?.cost && !playingCard
+
+          return (
+            <motion.div
+              key={`${card.id}_${i}`}
+              className="absolute left-1/2 bottom-0"
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              onClick={() => onClickCard(canPlay, card)}
+              animate={{
+                x: offset * spread,
+                y: isHovered ? -70 : y,
+                rotate: isHovered ? 0 : rotate,
+                scale: isHovered ? 1.08 : 1,
+              }}
+              whileTap={canPlay ? { scale: 0.98 } : undefined}
+              transition={{ type: "spring", stiffness: 260, damping: 22 }}
+              style={{
+                translateX: "-50%",
+                transformOrigin: "bottom center",
+                zIndex: isHovered ? 999 : i,
+                cursor: canPlay ? "pointer" : "not-allowed",
+                pointerEvents: playingCard ? "none" : "auto",
+              }}
+            >
+              <CardItem card={card} disabled={!canPlay} />
+            </motion.div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function StatusBadge({
   label,
@@ -216,82 +271,4 @@ function StatusBadge({
   )
 }
 
-function CardComponent({
-  card,
-  canPlay,
-  onPlay,
-}: {
-  card: Card
-  canPlay: boolean
-  onPlay: () => void
-}) {
-  return (
-    <motion.div
-      onClick={() => canPlay && onPlay()}
-      whileHover={canPlay ? { y: -8 } : undefined}
-      whileTap={canPlay ? { scale: 0.96 } : undefined}
-      transition={{ duration: 0.15 }}
-      style={{
-        width: 88,
-        minHeight: 120,
-        border: `1px solid ${canPlay ? "#aaa" : "#eee"}`,
-        borderRadius: 10,
-        padding: "10px 8px",
-        background: "#fff",
-        opacity: canPlay ? 1 : 0.45,
-        cursor: canPlay ? "pointer" : "not-allowed",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        position: "relative",
-      }}
-    >
-      {/* 费用 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 6,
-          right: 7,
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          background: "#534AB7",
-          color: "#fff",
-          fontSize: 11,
-          fontWeight: 500,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {card.cost}
-      </div>
-
-      <span style={{ fontSize: 22 }}>{card.icon}</span>
-
-      <div style={{ fontSize: 11, fontWeight: 500 }}>{card.name}</div>
-
-      <div
-        style={{
-          fontSize: 9,
-          color: "#aaa",
-          textTransform: "uppercase",
-          letterSpacing: 0.5,
-        }}
-      >
-        {card.type}
-      </div>
-
-      <div
-        style={{
-          fontSize: 10,
-          color: "#888",
-          marginTop: "auto",
-          lineHeight: 1.4,
-        }}
-      >
-        {card.desc}
-      </div>
-    </motion.div>
-  )
-}
+export default BattleScreen;

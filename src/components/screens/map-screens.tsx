@@ -1,12 +1,17 @@
 import { BOSSES } from '../../data/bosses'
+import { useBattleStore } from "../../stores/battle-store"
 import { useGameStore } from "../../stores/game-store"
 
-export default function MapScreen() {
+export const MapScreen = () => {
   const floor = useGameStore((s) => s.floor)
   const player = useGameStore((s) => s.player)
   const gold = useGameStore((s) => s.gold)
   const deck = useGameStore((s) => s.deck)
-  const startBattle = useGameStore((s) => s.startBattle)
+  const startBattle = useBattleStore((s) => s.startBattle)
+
+  const onClickMapNode = () => {
+    
+  }
 
   return (
     <div className="container mx-auto px-4">
@@ -71,3 +76,5 @@ export default function MapScreen() {
     </div>
   )
 }
+
+export default MapScreen;

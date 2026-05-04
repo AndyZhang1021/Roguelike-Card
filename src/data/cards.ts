@@ -1,4 +1,5 @@
 import { CardType, type Card } from "../types/card"
+import { CharacterType } from "../types/character"
 
 
 export const ALL_CARDS: Card[] = [
@@ -11,6 +12,7 @@ export const ALL_CARDS: Card[] = [
   { id: 'double', name: 'Twin Strike', icon: '⚡', cost: 1, type: CardType.ATTACK, description: 'Deal 4 dmg twice' },
   { id: 'armor', name: 'Fortify', icon: '🏰', cost: 2, type: CardType.SKILL, description: 'Gain 12 block' },
   { id: 'blast', name: 'Arcane Blast', icon: '💫', cost: 3, type: CardType.ATTACK, description: 'Deal 20 dmg' },
+  { id: 'defend', name: 'Defend', icon: '🛡️', cost: 1, type: CardType.SKILL, description: 'Gain 5 block' },
 ]
 
 export const STARTER_DECK: string[] = [

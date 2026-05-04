@@ -3,7 +3,7 @@ import type { Enemy } from "../../types/enemy";
 
 export const EnemyCard = ({ enemy }: { enemy: Enemy }) => {
   return (
-    <div className="h-110 w-70 relative">
+    <div className="h-105 w-65 relative">
       <div className="relative z-10 h-full w-full flex flex-col justify-between pt-12 pb-8 px-6">
         <div className="flex items-center justify-between">
           <p className="text-white text-2xl">{enemy.name}</p>

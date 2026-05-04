@@ -14,3 +14,6 @@ export interface Card {
   description: string,
   targets?: CharacterType[]
 }
+
+
+export const MAX_HAND_SIZE = 5;
