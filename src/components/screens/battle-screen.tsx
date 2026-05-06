@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { useGameStore } from "../../stores/game-store.ts"
@@ -6,7 +6,7 @@ import { useBattleStore } from "../../stores/battle-store.ts";
 import { Layout } from "../shared/layout.tsx"
 import { Heart, Shield } from 'lucide-react';
 import { EnemyCard } from "../enemies/enemy-card.tsx"
-import type { Card } from "../../types/card.ts";
+import type { Card, GameCard } from "../../types/card.ts";
 import { CardItem } from "../cards/card.tsx";
 import Hero from "../../assets/hero.png";
 import { IsZero } from "../../utilities/field-validation.ts";
@@ -18,16 +18,26 @@ const BattleScreen = () => {
   const hand = useBattleStore((s) => s.hand);
   const energy = useBattleStore((s) => s.energy);
   const maxEnergy = useBattleStore((s) => s.maxEnergy);
+  const deck = useGameStore((s) => s.deck);
+  const draw = useBattleStore((s) => s.draw);
+  const discard = useBattleStore((s) => s.discard);
   const playCard = useBattleStore((s) => s.playCard);
   const endTurn = useBattleStore((s) => s.endTurn);
   const startBattle = useBattleStore((s) => s.startBattle);
-  
-  const [playingCard, setPlayingCard] = useState<Card | null>(null);
+
+  const [playingCard, setPlayingCard] = useState<GameCard | null>(null);
   const hasPlayedRef = useRef(false);
 
-  if (!enemy) return startBattle();
+  const discardedCards = useMemo(() => {
+    return deck.filter((c) => discard.includes(c.id))
+  }, [deck, discard]);
 
-  const handlePlayCard = (card: Card) => {
+  if (!enemy) {
+    startBattle();
+    return;
+  }
+
+  const handlePlayCard = (card: GameCard) => {
     if (playingCard) return;
     hasPlayedRef.current = false;
     setPlayingCard(card)
@@ -169,7 +179,7 @@ const BattleScreen = () => {
             <div className="border border-b-0 h-14 w-full rounded-t-full" />
           </div>
 
-          <div className="w-1/6 flex items-center justify-center">
+          <div className="w-1/6 flex flex-col items-center justify-center">
             <button
               onClick={endTurn}
               style={{
@@ -183,6 +193,20 @@ const BattleScreen = () => {
             >
               End turn →
             </button>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p>In Deck ({draw.length})</p>
+                <div className="h-50 overflow-auto">
+                  {draw.map((card) => <p className="text-xsm">{card.icon} {card.name}</p>)}
+                </div>
+              </div>
+              <div>
+                <p>Discard ({discardedCards.length})</p>
+                <div className="h-50 overflow-auto">
+                  {discardedCards.map((card) => <p className="text-xsm">{card.icon} {card.name}</p>)}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

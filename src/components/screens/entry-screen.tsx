@@ -5,12 +5,18 @@ import { useGameStore } from "../../stores/game-store";
 
 const EntryScreen = () => {
   const setScreen = useGameStore((s) => s.setScreen)
+  const startGame = useGameStore((s) => s.startGame)
+
+  const onStartGame = () => {
+    startGame();
+    setScreen("map");
+  }
 
   return (
     <div style={{ background: `url(${Background})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
       className="w-screen h-screen">
         <div className="flex items-center justify-center w-full h-full">
-          <button className="bg-white rounded shadow-2xl hover:shadow-sm" onClick={() => setScreen("map")}>Start</button>
+          <button className="bg-white rounded shadow-2xl hover:shadow-sm" onClick={onStartGame}>Start</button>
           {/* <button type="button" className="w-64 cursor-pointer shadow-2xl hover:shadow-sm" onClick={() => console.log('start')}>
             <img src={StartButton} className="w-full object-contain" />
           </button> */}

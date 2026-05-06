@@ -1,20 +1,20 @@
 import { create } from 'zustand'
-import { STARTER_DECK } from '../data/cards'
+import { GetCardDeck, STARTER_DECK } from '../data/cards'
 import type { GameScreen, Player } from '../types/game'
-import type { Card } from '../types/card'
+import type { Card, CardCode, GameCard } from '../types/card'
 
 interface GameState {
   screen: GameScreen
   floor: number
   player: Player
   gold: number
-  deck: string[]
+  deck: GameCard[]
   log: string[]
 
   startGame: () => void
   setScreen: (screen: GameScreen) => void
   addLog: (msg: string) => void
-  addCardToDeck: (card: Card) => void
+  addCardToDeck: (card: GameCard) => void
   nextFloor: () => void
   updatePlayer: (player: Player) => void
 }
@@ -22,9 +22,9 @@ interface GameState {
 export const useGameStore = create<GameState>((set, get) => ({
   screen: 'entry',
   floor: 1,
-  player: { hp: 80, maxHp: 80, block: 0, status: {} },
+  player: { hp: 10, maxHp: 80, block: 0, status: {} },
   gold: 0,
-  deck: [...STARTER_DECK],
+  deck: [],
   log: [],
 
   addLog: (msg) =>
@@ -38,7 +38,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       floor: 1,
       player: { hp: 80, maxHp: 80, block: 0, status: {} },
-      deck: [...STARTER_DECK],
+      deck: [...GetCardDeck()],
       gold: 0,
       log: [],
       screen: 'map',
@@ -48,7 +48,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   addCardToDeck: (card) =>
     set((s) => ({
-      deck: [...s.deck, card.id],
+      deck: [...s.deck, card],
     })),
 
   nextFloor: () => {
