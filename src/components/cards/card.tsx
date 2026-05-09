@@ -3,7 +3,7 @@ import type { Card } from "../../types/card"
 
 export const CardItem = ({ card, disabled }: { card: Card, disabled?: boolean }) => {
   return (
-    <div className={`relative w-50 aspect-3/4 ${disabled ? "grayscale-25 brightness-150" : ""} transition-all`}>
+    <div className={`relative w-50 aspect-3/4 ${disabled ? "grayscale-25 brightness-50" : ""} transition-all`}>
       <p className="absolute top-1.5 left-5 z-30 text-white text-2xl">{card.cost}</p>
       <div className="bg-gray-800 absolute z-10 overflow-hidden flex flex-col justify-between items-center text-center pt-4 pl-6 pr-5 pb-10 
         left-[10%] right-[7%] top-[7%] bottom-[2%]">

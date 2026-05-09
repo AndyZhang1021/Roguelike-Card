@@ -4,6 +4,7 @@ import { useGameStore } from "./stores/game-store"
 import BattleScreen from "./components/screens/battle-screen"
 import RewardScreen from "./components/screens/reward-screen"
 import GameOverScreen from "./components/screens/gameover-screen"
+import WinScreen from "./components/screens/win-screen"
 
 const App = () => {
   const screen = useGameStore((s) => s.screen)
@@ -14,7 +15,7 @@ const App = () => {
       {screen === 'battle' && <BattleScreen />}
       {screen === 'reward' && <RewardScreen />}
       {screen === 'gameover' && <GameOverScreen />}
-      {screen === 'win' && <div>You Win — TODO</div>}
+      {screen === 'win' && <WinScreen />}
     </>
   )
 }

@@ -138,7 +138,7 @@ const BattleScreen = () => {
               maxHeight: 72, overflowY: 'auto',
               lineHeight: 1.8,
             }}>
-              {log.slice(0, 5).reverse().map((l, i) => <div key={i}>{l}</div>)}
+              {log.slice(0, 5).map((l, i) => <div key={i}>{l}</div>)}
             </div>
             {/* <div className="flex items-center justify-between px-4 py-2 gap-4">
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>

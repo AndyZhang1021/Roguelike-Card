@@ -1,7 +1,10 @@
 import { create } from 'zustand'
-import { GetCardDeck, STARTER_DECK } from '../data/cards'
+import { GetCardDeck } from '../data/cards'
 import type { GameScreen, Player } from '../types/game'
 import type { Card, CardCode, GameCard } from '../types/card'
+import type { Boon } from "../types/boons"
+import { ALL_BOONS } from "../data/boons"
+import { Shuffle } from "../utilities/general"
 
 interface GameState {
   screen: GameScreen
@@ -11,12 +14,20 @@ interface GameState {
   deck: GameCard[]
   log: string[]
 
+  boons: Boon[]
+  discardedBoons: Boon[]
+
   startGame: () => void
   setScreen: (screen: GameScreen) => void
   addLog: (msg: string) => void
   addCardToDeck: (card: GameCard) => void
   nextFloor: () => void
   updatePlayer: (player: Player) => void
+  // 人物福佑
+  getAvailableBoons: (count: number) => Boon[]
+  getBoon: (name: string) => Boon | undefined
+  addBoon: (boon: Boon) => void
+  discardBoon: (boon: Boon) => void
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -26,6 +37,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   gold: 0,
   deck: [],
   log: [],
+  boons: [],
+  discardedBoons: [],
 
   addLog: (msg) =>
     set((s) => ({
@@ -34,7 +47,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setScreen: (screen) => set({ screen }),
 
-  startGame: () =>
+  startGame: () => {
     set({
       floor: 1,
       player: { hp: 80, maxHp: 80, block: 0, status: {} },
@@ -42,7 +55,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       gold: 0,
       log: [],
       screen: 'map',
-    }),
+      boons: [],
+      discardedBoons: [],
+    })
+  },
 
   updatePlayer: (player) => set({ player }),
 
@@ -64,4 +80,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       screen: 'map',
     })
   },
-}))
+
+  // 人物福佑
+  getAvailableBoons: (count: number) => Shuffle(ALL_BOONS.filter(b => !get().discardedBoons.some(d => d.name === b.name))).slice(0, count),
+  getBoon: (name: string) => ALL_BOONS.find(b => b.name === name),
+  addBoon: (boon: Boon) => set((s) => ({ boons: [...s.boons, boon] })),
+  discardBoon: (boon: Boon) => set((s) => ({ discardedBoons: [...s.discardedBoons, boon] })),
+})) 

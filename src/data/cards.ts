@@ -1,5 +1,4 @@
 import { CardCode, CardType, type Card, type GameCard } from "../types/card"
-import { CharacterType } from "../types/character"
 
 
 export const ALL_CARDS: Card[] = [
@@ -14,7 +13,6 @@ export const ALL_CARDS: Card[] = [
   { code: CardCode.BLAST, name: 'Arcane Blast', icon: '💫', cost: 3, type: CardType.ATTACK, description: 'Deal 20 dmg', occurenceCount: 1 },
 ]
 
-
 export const GetCardDeck = (): GameCard[] => {
   const deck: GameCard[] = [];
   ALL_CARDS.map((card: Card) => {
@@ -24,10 +22,4 @@ export const GetCardDeck = (): GameCard[] => {
   return deck;
 }
 
-export const STARTER_DECK: CardCode[] = [
-  CardCode.STRIKE, CardCode.STRIKE, CardCode.STRIKE,
-  CardCode.DEFEND, CardCode.DEFEND,
-  CardCode.BASH, CardCode.HEAL, CardCode.DOUBLE, CardCode.ARMOR, CardCode.BLAST
-]
-
-export const getCard = (code: CardCode) => ALL_CARDS.find(c => c.code === code)
+export const getCard = (code: CardCode) => ALL_CARDS.find(c => c.code === code);
