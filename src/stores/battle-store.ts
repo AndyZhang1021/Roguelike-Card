@@ -20,11 +20,13 @@ interface BattleState {
   dmgCaused: number,
   dmgTaken: number,
 
-  addLog: (msg: string) => void
-  startBattle: () => void
-  playCard: (card: GameCard) => void
-  endTurn: () => void
-  resetBattle: () => void
+  addLog: (msg: string) => void,
+  startBattle: () => void,
+  playCard: (card: GameCard) => void,
+  endTurn: () => void,
+  resetBattle: () => void,
+  startPlayerRound: () => void,
+  startEnemyRound: () => void,
 }
 
 const goScreen = (game: any, screen: GameScreen) => {
@@ -71,15 +73,15 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
   startBattle: () => {
     get().resetBattle();
-    const game = useGameStore.getState()
-    const bossData = BOSSES[game.floor - 1]
+    const game = useGameStore.getState();
+    const bossData = BOSSES[game.floor - 1];
 
     const enemy: Enemy = {
       ...bossData,
       maxHp: bossData.hp,
       block: 0,
       status: {},
-    }
+    };
     
     const draw: GameCard[] = Shuffle(game.deck);
     const hand: GameCard[] = draw.splice(0, MAX_HAND_SIZE);
@@ -92,9 +94,9 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       round: 1,
       energy: get().maxEnergy,
       log: [],
-    })
+    });
 
-    game.setScreen('battle')
+    game.setScreen('battle');
     game.addLog(`⚔️ Battle starts vs ${enemy.name}!`);
   },
 
@@ -234,15 +236,19 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     // ✅ 4. 抽新手牌
     newRound++;
     addLog(`Round ${newRound}: Player turn start!`);
-    console.log("newDraw", newDraw)
     if (newDraw.length == 0) newDraw = Shuffle(game.deck.filter((c) => !newHand.some((h) => h.id === c.id)));
     if (newDraw.length > 0) {
       newHand = [...newHand, newDraw[0]];
       newDraw.splice(0, 1);
     }
-    console.log("newDraw", newDraw)
-
     // ✅ 5. 更新 state
     updateState();
+  },
+
+  startPlayerRound: () => {
+    
+  },
+
+  startEnemyRound: () => {
   }
 }))
