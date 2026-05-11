@@ -216,6 +216,7 @@ const BattleScreen = () => {
 }
 
 const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[], energy: number, playingCard: Card | null, onPlayCard: (card: Card) => void }) => {
+  const disabledCards = useBattleStore((s) => s.disabledCards);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>();
   const total = cards.length;
   const center = (total - 1) / 2;
@@ -237,7 +238,7 @@ const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[],
 
           const isHovered = hoveredIndex === i
           const canPlay = energy >= card?.cost && !playingCard
-
+          const disabled = disabledCards.some(c => c.card.type === card.type && c.round > 0);
           return (
             <motion.div
               key={`${card.id}_${i}`}
@@ -261,7 +262,7 @@ const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[],
                 pointerEvents: playingCard ? "none" : "auto",
               }}
             >
-              <CardItem card={card} disabled={!canPlay} />
+              <CardItem card={card} disabled={!canPlay || disabled} />
             </motion.div>
           )
         })}

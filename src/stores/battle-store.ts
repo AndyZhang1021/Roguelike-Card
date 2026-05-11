@@ -2,10 +2,11 @@ import { create } from 'zustand'
 import { getCard } from '../data/cards'
 import { BOSSES } from '../data/bosses'
 import { useGameStore } from './game-store'
-import type { Enemy, GameScreen } from '../types/game'
-import { CardCode, MAX_HAND_SIZE, type Card, type GameCard } from '../types/card'
+import { RoundState, type Enemy, type GameScreen, type Player } from '../types/game'
+import { CardCode, CardType, MAX_HAND_SIZE, type Card, type GameCard } from '../types/card'
 import { CharacterType } from "../types/character"
 import { Shuffle } from "../utilities/general"
+import type { Boon } from "../types/boons"
 
 interface BattleState {
   enemy: Enemy | null,
@@ -19,14 +20,17 @@ interface BattleState {
   log: string[],
   dmgCaused: number,
   dmgTaken: number,
+  disabledCards: { round: number, card: GameCard }[],
 
   addLog: (msg: string) => void,
   startBattle: () => void,
+  drawCard: (card?: GameCard) => void,
   playCard: (card: GameCard) => void,
   endTurn: () => void,
   resetBattle: () => void,
   startPlayerRound: () => void,
   startEnemyRound: () => void,
+  processBoons: (player: Player, enemy: Enemy, triggerState: RoundState) => void,
 }
 
 const goScreen = (game: any, screen: GameScreen) => {
@@ -56,6 +60,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   log: [],
   dmgCaused: 0,
   dmgTaken: 0,
+  disabledCards: [],
 
   addLog: (msg) =>
     set((s) => ({ log: [msg, ...s.log].slice(0, 20) })),
@@ -82,7 +87,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       block: 0,
       status: {},
     };
-    
+
     const draw: GameCard[] = Shuffle(game.deck);
     const hand: GameCard[] = draw.splice(0, MAX_HAND_SIZE);
     set({
@@ -100,62 +105,102 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     game.addLog(`⚔️ Battle starts vs ${enemy.name}!`);
   },
 
+  drawCard: (card?: GameCard) => {
+    const { draw, hand } = get();
+    const game = useGameStore.getState();
+    let newDraw = [...draw];
+    let newHand = [...hand];
+    if (newDraw.length == 0) newDraw = Shuffle(game.deck.filter((c) => !newHand.some((h) => h.id === c.id)));
+    if (newDraw.length > 0) {
+      newHand = [...newHand, newDraw[0]];
+      newDraw.splice(0, 1);
+    }
+    set({ draw: newDraw, hand: newHand });
+  },
+
   playCard: (card) => {
-    const { energy, enemy, log, addLog } = get();
+    const { energy, enemy, disabledCards, addLog } = get();
     const game = useGameStore.getState();
     const player = game.player;
 
     if (energy < card.cost || !enemy) return;
 
-    let newEnemy = { ...enemy, status: { ...enemy.status } };
-    let newPlayer = { ...player, status: { ...player.status } };
+    let newEnemy = { ...enemy, boons: { ...enemy.status } };
+    let newPlayer = { ...player, boons: { ...player.boons } };
+    let newDisabledCards = [...disabledCards];
 
+    let dmg = 0;
     switch (card.code) {
       case CardCode.STRIKE:
-        newEnemy.hp -= 96;
+        dmg = 96;
+        newEnemy.hp -= dmg;
         addLog('⚔️ Strike: 6 dmg');
         break;
       case CardCode.BASH:
-        newEnemy.hp -= 8
+        dmg = 8;
+        newEnemy.hp -= dmg;
         newEnemy.status.weak = (newEnemy.status.weak || 0) + 2
         addLog('🔨 Bash: 8 dmg + Weak')
         break
       case CardCode.DEFEND:
-        newPlayer.block += 5
+        newPlayer.block += 5;
         addLog('🛡️ Defend: +5 block')
         break
       case CardCode.FIREBALL:
-        newEnemy.hp -= 12
+        dmg = 12;
+        newEnemy.hp -= dmg;
         addLog('🔥 Fireball: 12 dmg')
         break
       case CardCode.HEAL:
-        newPlayer.hp = Math.min(newPlayer.maxHp, newPlayer.hp + 6)
+        newPlayer.hp = Math.min(newPlayer.maxHp, newPlayer.hp + 6);
         addLog('💊 Heal: +6 HP')
         break
       case CardCode.POISON:
-        newEnemy.status.poison = (newEnemy.status.poison || 0) + 3
+        newEnemy.status.poison = (newEnemy.status.poison || 0) + 3;
         addLog('🪶 Poison: +3')
         break
       case CardCode.DOUBLE:
-        newEnemy.hp -= 8
+        dmg = 8;
+        newEnemy.hp -= dmg;
         addLog('⚡ Twin Strike: 4+4 dmg')
         break
       case CardCode.ARMOR:
-        newPlayer.block += 12
+        newPlayer.block += 12;
         addLog('🏰 Fortify: +12 block')
         break
       case CardCode.BLAST:
-        newEnemy.hp -= 20
+        dmg = 20;
+        newEnemy.hp -= dmg;
         addLog('💫 Arcane Blast: 20 dmg')
         break
     }
-    
+
+    if (card.type === CardType.ATTACK) {
+      let boons = player.boons.filter(b => b.triggerState === RoundState.START_TURN);
+      boons.map((boon: Boon) => {
+        switch (boon.name) {
+          case "Lifesteal":
+            newEnemy.hp += 1;
+            addLog(`Boon (${boon.name}): 💊 Heal: +1 HP`);
+            break;
+          case "Rage":
+            newEnemy.hp -= dmg;
+            addLog(`Boon (${boon.name}): Deal double dmg`);
+            let idx = newDisabledCards.findIndex(c => c.card.type === card.type);
+            if (idx >= 0) newDisabledCards[idx].round += 1;
+            else newDisabledCards.push({ round: 1, card });
+            break;
+        }
+      });
+    }
+
     set((s) => ({
       energy: s.energy - card.cost,
       hand: s.hand.filter((c) => c.id !== card.id),
       discard: [...s.discard, card.id],
       enemy: newEnemy,
-      dmgCaused: enemy.hp - newEnemy.hp,
+      dmgCaused: dmg,
+      disabledCards: newDisabledCards
     }))
 
     game.updatePlayer(newPlayer)
@@ -164,14 +209,38 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   },
 
   endTurn: () => {
-    const { enemy, maxEnergy, draw, addLog, hand, round, dmgCaused, dmgTaken } = get();
+    const { enemy, startPlayerRound, startEnemyRound, processBoons } = get();
+    const game = useGameStore.getState();
+    processBoons(game.player, enemy, RoundState.START_TURN);
+    startEnemyRound();
+    startPlayerRound();
+  },
+
+  startPlayerRound: () => {
+    const { round, draw, hand, enemy, disabledCards, addLog, drawCard, processBoons } = get();
+    const game = useGameStore.getState();
+    let player = game.player;
+    let newDraw = [...draw];
+    let newHand = [...hand];
+    let newRound = round + 1;
+    let newDisabledCards = [...disabledCards].map((c) => ({ ...c, round: c.round - 1 }));
+    newDisabledCards = newDisabledCards.filter(c => c.round > 0);
+    addLog(`Round ${newRound}: Player turn start!`);
+    processBoons(player, enemy, RoundState.BEFORE_START);
+    // ✅ 1. 抽新手牌
+    drawCard();
+    game.updatePlayer(player);
+    set({ draw: newDraw, hand: newHand, round: newRound, disabledCards: newDisabledCards });
+  },
+
+  startEnemyRound: () => {
+    const { enemy, maxEnergy, draw, addLog, round, hand, dmgCaused, dmgTaken } = get();
     const game = useGameStore.getState();
     const player = game.player;
 
     if (!enemy) return;
-    let newRound = round + 1;
     let newEnemy = { ...enemy, status: { ...enemy.status } };
-    let newPlayer = { ...player, status: { ...player.status } };
+    let newPlayer = { ...player, boons: { ...player.boons } };
     let newDmgCaused = dmgCaused;
     let newDmgTaken = dmgTaken;
     let newDraw = [...draw];
@@ -182,17 +251,15 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         enemy: newEnemy,
         hand: newHand,
         energy: maxEnergy,
-        round: newRound,
         draw: newDraw,
         dmgCaused: newDmgCaused,
         dmgTaken: newDmgTaken,
       });
       game.updatePlayer(newPlayer);
     }
-
     // ✅ 1. 玩家回合结束 → 手牌进 discard
     // let newDiscard = [...discard, ...hand.map(c => c.id)]
-    addLog(`Round ${newRound}: 👹 ${enemy.name} turn start!`);
+    addLog(`Round ${round}: 👹 ${enemy.name} turn start!`);
     set({ turn: CharacterType.ENEMY });
 
     // ✅ 2. 毒伤
@@ -232,23 +299,31 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       goScreen(game, "gameover");
       return;
     }
-
-    // ✅ 4. 抽新手牌
-    newRound++;
-    addLog(`Round ${newRound}: Player turn start!`);
-    if (newDraw.length == 0) newDraw = Shuffle(game.deck.filter((c) => !newHand.some((h) => h.id === c.id)));
-    if (newDraw.length > 0) {
-      newHand = [...newHand, newDraw[0]];
-      newDraw.splice(0, 1);
-    }
-    // ✅ 5. 更新 state
     updateState();
   },
 
-  startPlayerRound: () => {
-    
-  },
-
-  startEnemyRound: () => {
+  processBoons: (player: Player, enemy: Enemy, triggerState: RoundState) => {
+    const { addLog, drawCard } = get();
+    const game = useGameStore.getState();
+    let boons = player.boons.filter(b => b.triggerState === triggerState);
+    boons.map((boon: Boon) => {
+      switch (boon.name) {
+        case "Natural Heal":
+          player.hp += 1;
+          addLog(`Boon (${boon.name}): 💊 Heal: +1 HP`);
+          break;
+        case "Suicide":
+          player.hp -= 3;
+          addLog(`Boon (${boon.name}): 💀 Suicide: -3 HP`);
+          break;
+        case "Chaotic":
+          let isCardDrawTriggered = Math.random() < 0.5;
+          if (isCardDrawTriggered) {
+            drawCard();
+            addLog(`Boon (${boon.name}): 🎲 Draw a card`);
+          }
+      }
+    });
+    game.updatePlayer(player);
   }
 }))

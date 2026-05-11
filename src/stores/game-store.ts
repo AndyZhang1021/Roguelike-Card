@@ -33,7 +33,7 @@ interface GameState {
 export const useGameStore = create<GameState>((set, get) => ({
   screen: 'entry',
   floor: 1,
-  player: { hp: 10, maxHp: 80, block: 0, status: {} },
+  player: { hp: 10, maxHp: 80, block: 0, boons: [] },
   gold: 0,
   deck: [],
   log: [],
@@ -50,7 +50,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   startGame: () => {
     set({
       floor: 1,
-      player: { hp: 80, maxHp: 80, block: 0, status: {} },
+      player: { hp: 80, maxHp: 80, block: 0, boons:[] },
       deck: [...GetCardDeck()],
       gold: 0,
       log: [],
@@ -84,6 +84,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   // 人物福佑
   getAvailableBoons: (count: number) => Shuffle(ALL_BOONS.filter(b => !get().discardedBoons.some(d => d.name === b.name))).slice(0, count),
   getBoon: (name: string) => ALL_BOONS.find(b => b.name === name),
-  addBoon: (boon: Boon) => set((s) => ({ boons: [...s.boons, boon] })),
+  addBoon: (boon: Boon) => set((s) => ({ player: { ...s.player, boons: [...s.player.boons, boon] } })),
   discardBoon: (boon: Boon) => set((s) => ({ discardedBoons: [...s.discardedBoons, boon] })),
 })) 

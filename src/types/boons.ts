@@ -1,8 +1,11 @@
+import type { RoundState } from "./game";
+
 export interface Boon {
   name: string,
   icon: string,
   description: string,
   type: BoonType,
+  triggerState: RoundState
 }
 
 export enum BoonType {
