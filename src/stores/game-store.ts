@@ -14,7 +14,6 @@ interface GameState {
   deck: GameCard[]
   log: string[]
 
-  boons: Boon[]
   discardedBoons: Boon[]
 
   startGame: () => void
@@ -37,7 +36,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   gold: 0,
   deck: [],
   log: [],
-  boons: [],
   discardedBoons: [],
 
   addLog: (msg) =>
@@ -55,7 +53,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       gold: 0,
       log: [],
       screen: 'map',
-      boons: [],
       discardedBoons: [],
     })
   },

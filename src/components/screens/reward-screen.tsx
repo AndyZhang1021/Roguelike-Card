@@ -51,9 +51,9 @@ export const RewardScreen = () => {
                 <p className="font-semibold">{boon.name}</p>
                 <p className="text-2xl">{boon.icon}</p>
                 <p className="font-light text-sm">{boon.description}</p>
-                <button className="border px-4 py-2 rounded mt-4">
+                <span className="inline-block border px-4 py-2 rounded mt-4">
                   {selectedBoon?.name === boon.name ? "Selected" : "Select"}
-                </button>
+                </span>
               </button>
             )
           })}

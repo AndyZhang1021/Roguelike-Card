@@ -125,8 +125,8 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
     if (energy < card.cost || !enemy) return;
 
-    let newEnemy = { ...enemy, boons: { ...enemy.status } };
-    let newPlayer = { ...player, boons: { ...player.boons } };
+    let newEnemy = { ...enemy };
+    let newPlayer = { ...player };
     let newDisabledCards = [...disabledCards];
 
     let dmg = 0;
@@ -240,7 +240,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
     if (!enemy) return;
     let newEnemy = { ...enemy, status: { ...enemy.status } };
-    let newPlayer = { ...player, boons: { ...player.boons } };
+    let newPlayer = { ...player };
     let newDmgCaused = dmgCaused;
     let newDmgTaken = dmgTaken;
     let newDraw = [...draw];

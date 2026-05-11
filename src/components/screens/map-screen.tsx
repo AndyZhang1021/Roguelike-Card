@@ -7,7 +7,7 @@ export const MapScreen = () => {
   const player = useGameStore((s) => s.player)
   const gold = useGameStore((s) => s.gold)
   const deck = useGameStore((s) => s.deck)
-  const boons = useGameStore((s) => s.boons)
+  const boons = useGameStore((s) => s.player.boons)
   const startBattle = useBattleStore((s) => s.startBattle)
 
   const onClickMapNode = () => {
@@ -26,7 +26,7 @@ export const MapScreen = () => {
         </div>
         <div>
           {boons.map((boon, i) => (
-            <p className="text-base">{boon.icon} <span className="text-sm font-light">{boon.name}</span></p>
+            <p key={i} className="text-base">{boon.icon} <span className="text-sm font-light">{boon.name}</span></p>
           ))}
         </div>
       </div>
