@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { useGameStore } from "../../stores/game-store.ts"
 import { useBattleStore } from "../../stores/battle-store.ts";
 import { Layout } from "../shared/layout.tsx"
-import { Heart, Shield } from 'lucide-react';
+import { Heart, Settings, Shield } from 'lucide-react';
 import { EnemyCard } from "../enemies/enemy-card.tsx"
 import type { Card, GameCard } from "../../types/card.ts";
 import { CardItem } from "../cards/card.tsx";
@@ -13,6 +13,7 @@ import { IsZero } from "../../utilities/field-validation.ts";
 
 const BattleScreen = () => {
   const player = useGameStore((s) => s.player);
+  const floor = useGameStore((s) => s.floor);
   const log = useBattleStore((s) => s.log);
   const enemy = useBattleStore((s) => s.enemy);
   const hand = useBattleStore((s) => s.hand);
@@ -24,8 +25,10 @@ const BattleScreen = () => {
   const playCard = useBattleStore((s) => s.playCard);
   const endTurn = useBattleStore((s) => s.endTurn);
   const startBattle = useBattleStore((s) => s.startBattle);
+  const setScreen = useGameStore((s) => s.setScreen);
 
   const [playingCard, setPlayingCard] = useState<GameCard | null>(null);
+  const [sourceRect, setSourceRect] = useState<DOMRect | null>(null);
   const hasPlayedRef = useRef(false);
 
   const discardedCards = useMemo(() => {
@@ -37,23 +40,47 @@ const BattleScreen = () => {
     return;
   }
 
-  const handlePlayCard = (card: GameCard) => {
+  const handlePlayCard = (card: GameCard, rect: DOMRect) => {
     if (playingCard) return;
     hasPlayedRef.current = false;
-    setPlayingCard(card)
+    setSourceRect(rect);
+    setPlayingCard(card);
   }
 
   return (
     <Layout>
       <div className="relative flex flex-col justify-between h-full overflow-hidden">
         <AnimatePresence>
-          {playingCard && (
+          {playingCard && sourceRect && (
             <motion.div key={`flying-${playingCard.id}`}
-              exit={{ opacity: 0 }}
-              initial={{ position: "fixed", left: "50%", bottom: 110, x: "-50%", y: 0, scale: 1, opacity: 1, rotate: 0 }}
-              animate={{ y: -380, x: "calc(-50% + 100px)", scale: 1, opacity: .8, rotate: 18 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
-              style={{ width: 88, minHeight: 120, zIndex: 9999, pointerEvents: "none" }}
+              exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.18 } }}
+              initial={{
+                position: "fixed",
+                left: sourceRect.left,
+                top: sourceRect.top,
+                width: sourceRect.width,
+                height: sourceRect.height,
+                x: 0, y: 0, scale: 1, opacity: 1, rotate: 0,
+              }}
+              animate={{
+                y: [0, -180, -200, -380],
+                x: [0, 0, 0, 100],
+                scale: [1, 1.12, 1.12, 0.95],
+                rotate: [0, -2, 0, 18],
+                opacity: [1, 1, 1, 0],
+                filter: [
+                  "drop-shadow(0 0 0 rgba(255,220,140,0))",
+                  "drop-shadow(0 0 18px rgba(255,220,140,.85))",
+                  "drop-shadow(0 0 18px rgba(255,220,140,.85))",
+                  "drop-shadow(0 0 0 rgba(255,220,140,0))",
+                ],
+              }}
+              transition={{
+                duration: 0.9,
+                times: [0, 0.22, 0.55, 1],
+                ease: [0.25, 0.46, 0.45, 0.94],
+              }}
+              style={{ zIndex: 9999, pointerEvents: "none" }}
               onAnimationComplete={() => {
                 if (hasPlayedRef.current) return;
                 if (!playingCard) return;
@@ -61,6 +88,7 @@ const BattleScreen = () => {
                 hasPlayedRef.current = true;
                 playCard(playingCard);
                 setPlayingCard(null);
+                setSourceRect(null);
               }}>
               <CardItem card={playingCard} />
             </motion.div>
@@ -69,9 +97,13 @@ const BattleScreen = () => {
 
         <div className="flex-1 h-1/2">
           {/* 顶部状态栏 */}
-          <div className="border-b border-gray-200 flex items-center gap-4 text-[#666] p-4">
-            {/* <span>❤️ {player.hp}/{player.maxHp}</span>
-            <span>🛡️ {player.block}</span> */}
+          <div className="border-b border-gray-200 flex items-center justify-between gap-4 text-[#666] p-4">
+            <p>Floor {floor}</p>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setScreen('map')}>
+                <Settings />
+              </button>
+            </div>
           </div>
 
           {/* 战斗区 */}
@@ -119,15 +151,9 @@ const BattleScreen = () => {
                   <p>{player.hp}/{player.maxHp}</p>
                 </div>
                 <div className="flex gap-3 items-center mt-2">
-                  <div className="w-5 h-5 rotate-45 flex items-center justify-center border">
-                    <span className="-rotate-45 text-sm">S</span>
-                  </div>
-                  <div className="w-5 h-5 rotate-45 flex items-center justify-center border">
-                    <span className="-rotate-45 text-sm">B</span>
-                  </div>
-                  <div className="w-5 h-5 rotate-45 flex items-center justify-center border">
-                    <span className="-rotate-45 text-sm">B</span>
-                  </div>
+                  {player.boons.map((b, i) => <div className="w-6 h-6 flex items-center justify-center border shadow-lg rounded border-gray-200">
+                    <span className="text-sm">{b.icon}</span>
+                  </div>)}
                 </div>
               </div>
             </div>
@@ -140,30 +166,6 @@ const BattleScreen = () => {
             }}>
               {log.slice(0, 5).map((l, i) => <div key={i}>{l}</div>)}
             </div>
-            {/* <div className="flex items-center justify-between px-4 py-2 gap-4">
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <span style={{ fontSize: 13, color: "#888" }}>Energy</span>
-
-                  {Array.from({ length: maxEnergy }).map((_, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        background: i < energy ? "#534AB7" : "#eee",
-                        border: "1px solid #ddd",
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <center className="flex-1">
-                  <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
-                    {player.hp}/{player.maxHp} HP · {player.block} block
-                  </div>
-                </center>
-              </div> */}
           </div>
 
           {/* 手牌区 */}
@@ -215,21 +217,22 @@ const BattleScreen = () => {
   )
 }
 
-const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[], energy: number, playingCard: Card | null, onPlayCard: (card: Card) => void }) => {
+const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[], energy: number, playingCard: GameCard | null, onPlayCard: (card: GameCard, rect: DOMRect) => void }) => {
   const disabledCards = useBattleStore((s) => s.disabledCards);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>();
-  const total = cards.length;
+  const visibleCards = cards.filter((c): c is GameCard => Boolean(c));
+  const total = visibleCards.length;
   const center = (total - 1) / 2;
 
-  const onClickCard = (canPlay: boolean, card: Card) => {
+  const onClickCard = (canPlay: boolean, card: GameCard, e: MouseEvent<HTMLDivElement>) => {
     if (!canPlay) return;
-    onPlayCard(card);
+    onPlayCard(card, e.currentTarget.getBoundingClientRect());
   }
 
   return (
     <div className="relative h-65 w-full flex justify-center">
       <div className="relative w-full h-full">
-        {cards.filter(Boolean).map((card: any, i: number) => {
+        {visibleCards.map((card, i) => {
           const offset = i - center
 
           const spread = Math.max(50, 120 - total * 2)
@@ -237,20 +240,22 @@ const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[],
           const y = Math.pow(offset, 2) * 2
 
           const isHovered = hoveredIndex === i
-          const canPlay = energy >= card?.cost && !playingCard
+          const isPlaying = playingCard?.id === card.id
+          const canPlay = energy >= card.cost && !playingCard
           const disabled = disabledCards.some(c => c.card.type === card.type && c.round > 0);
           return (
             <motion.div
-              key={`${card.id}_${i}`}
+              key={card.id}
               className="absolute left-1/2 bottom-0"
-              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseEnter={() => !isPlaying && setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => onClickCard(canPlay && !disabled, card)}
+              onClick={(e) => onClickCard(canPlay && !disabled, card, e)}
               animate={{
                 x: offset * spread,
-                y: isHovered ? -70 : y,
-                rotate: isHovered ? 0 : rotate,
-                scale: isHovered ? 1.08 : 1,
+                y: isPlaying ? y : (isHovered ? -70 : y),
+                rotate: isPlaying ? rotate : (isHovered ? 0 : rotate),
+                scale: isPlaying ? 1 : (isHovered ? 1.08 : 1),
+                opacity: isPlaying ? 0 : 1,
               }}
               whileTap={canPlay ? { scale: 0.98 } : undefined}
               transition={{ type: "spring", stiffness: 260, damping: 22 }}

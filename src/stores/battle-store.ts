@@ -186,7 +186,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       boons.map((boon: Boon) => {
         switch (boon.name) {
           case "Lifesteal":
-            newEnemy.hp += 1;
+            newPlayer.hp += 1;
             addLog(`Boon (${boon.name}): 💊 Heal: +1 HP`);
             break;
           case "Rage":
