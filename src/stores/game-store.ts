@@ -79,7 +79,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   // 人物福佑
-  getAvailableBoons: (count: number) => Shuffle(ALL_BOONS.filter(b => !get().discardedBoons.some(d => d.name === b.name))).slice(0, count),
+  getAvailableBoons: (count: number) => Shuffle(ALL_BOONS.filter(b => !get().player.boons.some(d => d.name === b.name))).slice(0, count),
   getBoon: (name: string) => ALL_BOONS.find(b => b.name === name),
   addBoon: (boon: Boon) => set((s) => ({ player: { ...s.player, boons: [...s.player.boons, boon] } })),
   discardBoon: (boon: Boon) => set((s) => ({ discardedBoons: [...s.discardedBoons, boon] })),

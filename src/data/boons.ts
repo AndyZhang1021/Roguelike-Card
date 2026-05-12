@@ -6,5 +6,5 @@ export const ALL_BOONS: Boon[] = [
   { name: 'Lifesteal', icon: '💫', description: 'You get +1 hp from your each attack', type: BoonType.BLESSED, triggerState: RoundState.START_TURN },
   { name: 'Rage', icon: '💫', description: 'You can only attack once per round, but each of your attacks deals double damage', type: BoonType.TWISTED, triggerState: RoundState.START_TURN },
   { name: 'Suicide', icon: '💫', description: '-3 hp every start round', type: BoonType.CORRUPTED, triggerState: RoundState.BEFORE_START },
-  { name: 'Chaotic', icon: '💫', description: '50% chance to deal extra one card', type: BoonType.CHAOTIC, triggerState: RoundState.AFTER_TURN },
+  { name: 'Chaotic', icon: '💫', description: '50% chance to deal extra one card', type: BoonType.CHAOTIC, triggerState: RoundState.BEFORE_START },
 ]

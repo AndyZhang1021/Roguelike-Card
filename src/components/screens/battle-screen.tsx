@@ -245,7 +245,7 @@ const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[],
               className="absolute left-1/2 bottom-0"
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => onClickCard(canPlay, card)}
+              onClick={() => onClickCard(canPlay && !disabled, card)}
               animate={{
                 x: offset * spread,
                 y: isHovered ? -70 : y,

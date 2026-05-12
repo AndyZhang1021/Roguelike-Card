@@ -77,7 +77,8 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     }),
 
   startBattle: () => {
-    get().resetBattle();
+    const { resetBattle, startPlayerRound } = get();
+    resetBattle();
     const game = useGameStore.getState();
     const bossData = BOSSES[game.floor - 1];
 
@@ -103,19 +104,24 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
     game.setScreen('battle');
     game.addLog(`⚔️ Battle starts vs ${enemy.name}!`);
+    startPlayerRound();
   },
 
   drawCard: (card?: GameCard) => {
-    const { draw, hand } = get();
+    const { draw, hand, discard } = get();
     const game = useGameStore.getState();
     let newDraw = [...draw];
     let newHand = [...hand];
-    if (newDraw.length == 0) newDraw = Shuffle(game.deck.filter((c) => !newHand.some((h) => h.id === c.id)));
+    let newDiscard = [...discard];
+    if (newDraw.length === 0 && newDiscard.length > 0) {
+      newDraw = Shuffle(game.deck.filter((c) => newDiscard.includes(c.id)));
+      newDiscard = [];
+    }
     if (newDraw.length > 0) {
       newHand = [...newHand, newDraw[0]];
       newDraw.splice(0, 1);
     }
-    set({ draw: newDraw, hand: newHand });
+    set({ draw: newDraw, hand: newHand, discard: newDiscard });
   },
 
   playCard: (card) => {
@@ -132,7 +138,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     let dmg = 0;
     switch (card.code) {
       case CardCode.STRIKE:
-        dmg = 96;
+        dmg = 6;
         newEnemy.hp -= dmg;
         addLog('⚔️ Strike: 6 dmg');
         break;
@@ -217,11 +223,9 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   },
 
   startPlayerRound: () => {
-    const { round, draw, hand, enemy, disabledCards, addLog, drawCard, processBoons } = get();
+    const { round, enemy, disabledCards, addLog, drawCard, processBoons } = get();
     const game = useGameStore.getState();
     let player = game.player;
-    let newDraw = [...draw];
-    let newHand = [...hand];
     let newRound = round + 1;
     let newDisabledCards = [...disabledCards].map((c) => ({ ...c, round: c.round - 1 }));
     newDisabledCards = newDisabledCards.filter(c => c.round > 0);
@@ -230,7 +234,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     // ✅ 1. 抽新手牌
     drawCard();
     game.updatePlayer(player);
-    set({ draw: newDraw, hand: newHand, round: newRound, disabledCards: newDisabledCards });
+    set({ round: newRound, disabledCards: newDisabledCards });
   },
 
   startEnemyRound: () => {
@@ -318,10 +322,10 @@ export const useBattleStore = create<BattleState>((set, get) => ({
           break;
         case "Chaotic":
           let isCardDrawTriggered = Math.random() < 0.5;
-          if (isCardDrawTriggered) {
-            drawCard();
-            addLog(`Boon (${boon.name}): 🎲 Draw a card`);
-          }
+          if (!isCardDrawTriggered) break;
+          drawCard();
+          addLog(`Boon (${boon.name}): 🎲 Draw extra one card`);
+          break;
       }
     });
     game.updatePlayer(player);
