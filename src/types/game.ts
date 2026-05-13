@@ -19,6 +19,3 @@ export interface Player {
   boons: Boon[]
 }
 
-export enum RoundState {
-  BEFORE_START, START_TURN, AFTER_TURN
-}
