@@ -6,7 +6,7 @@ import { useBattleStore } from "../../stores/battle-store.ts";
 import { Layout } from "../shared/layout.tsx"
 import { Heart, Settings, Shield } from 'lucide-react';
 import { EnemyCard } from "../enemies/enemy-card.tsx"
-import type { Card, GameCard } from "../../types/card.ts";
+import { MAX_HAND_LIMIT, type Card, type GameCard } from "../../types/card.ts";
 import { CardItem } from "../cards/card.tsx";
 import Hero from "../../assets/hero.png";
 import { IsZero } from "../../utilities/field-validation.ts";
@@ -23,13 +23,23 @@ const BattleScreen = () => {
   const draw = useBattleStore((s) => s.draw);
   const discard = useBattleStore((s) => s.discard);
   const playCard = useBattleStore((s) => s.playCard);
+  const discardCard = useBattleStore((s) => s.discardCard);
   const endTurn = useBattleStore((s) => s.endTurn);
   const startBattle = useBattleStore((s) => s.startBattle);
   const setScreen = useGameStore((s) => s.setScreen);
 
   const [playingCard, setPlayingCard] = useState<GameCard | null>(null);
   const [sourceRect, setSourceRect] = useState<DOMRect | null>(null);
+  const [discardMode, setDiscardMode] = useState(false);
   const hasPlayedRef = useRef(false);
+
+  const excessCount = Math.max(0, hand.length - MAX_HAND_LIMIT);
+
+  useEffect(() => {
+    if (discardMode && hand.length <= MAX_HAND_LIMIT) {
+      setDiscardMode(false);
+    }
+  }, [discardMode, hand.length]);
 
   const discardedCards = useMemo(() => {
     return deck.filter((c) => discard.includes(c.id))
@@ -42,9 +52,20 @@ const BattleScreen = () => {
 
   const handlePlayCard = (card: GameCard, rect: DOMRect) => {
     if (playingCard) return;
+    if (discardMode) {
+      discardCard(card);
+      return handleEndTurn();
+    }
     hasPlayedRef.current = false;
     setSourceRect(rect);
     setPlayingCard(card);
+  }
+
+  const handleEndTurn = () => {
+    const currentHand = useBattleStore.getState().hand;
+    if (currentHand.length > MAX_HAND_LIMIT) return setDiscardMode(true);
+    setDiscardMode(false);
+    endTurn();
   }
 
   return (
@@ -175,6 +196,7 @@ const BattleScreen = () => {
                 cards={hand}
                 energy={energy}
                 playingCard={playingCard}
+                discardMode={discardMode}
                 onPlayCard={handlePlayCard}
               />
             </div>
@@ -183,18 +205,24 @@ const BattleScreen = () => {
 
           <div className="w-1/6 flex flex-col items-center justify-center">
             <button
-              onClick={endTurn}
+              onClick={discardMode ? () => setDiscardMode(false) : handleEndTurn}
               style={{
                 padding: "8px 18px",
                 borderRadius: 8,
                 border: "1px solid #ddd",
-                background: "#fff",
+                background: discardMode ? "#fff5f5" : "#fff",
                 cursor: "pointer",
+                color: discardMode ? "#dc2626" : undefined,
                 fontSize: 13,
               }}
             >
-              End turn →
+              {discardMode ? "Cancel" : "End turn →"}
             </button>
+            {discardMode && (
+              <p className="text-xs text-red-500 mt-1 text-center">
+                Discard {excessCount} more card{excessCount > 1 ? 's' : ''}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <p>In Deck ({draw.length})</p>
@@ -217,15 +245,15 @@ const BattleScreen = () => {
   )
 }
 
-const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[], energy: number, playingCard: GameCard | null, onPlayCard: (card: GameCard, rect: DOMRect) => void }) => {
+const CardOnHand = ({ cards, energy, playingCard, discardMode, onPlayCard }: { cards: Card[], energy: number, playingCard: GameCard | null, discardMode: boolean, onPlayCard: (card: GameCard, rect: DOMRect) => void }) => {
   const disabledCards = useBattleStore((s) => s.disabledCards);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>();
   const visibleCards = cards.filter((c): c is GameCard => Boolean(c));
   const total = visibleCards.length;
   const center = (total - 1) / 2;
 
-  const onClickCard = (canPlay: boolean, card: GameCard, e: MouseEvent<HTMLDivElement>) => {
-    if (!canPlay) return;
+  const onClickCard = (canClick: boolean, card: GameCard, e: MouseEvent<HTMLDivElement>) => {
+    if (!canClick) return;
     onPlayCard(card, e.currentTarget.getBoundingClientRect());
   }
 
@@ -243,31 +271,35 @@ const CardOnHand = ({ cards, energy, playingCard, onPlayCard }: { cards: Card[],
           const isPlaying = playingCard?.id === card.id
           const canPlay = energy >= card.cost && !playingCard
           const disabled = disabledCards.some(c => c.card.type === card.type && c.round > 0);
+          const canClick = discardMode ? !playingCard : (canPlay && !disabled);
           return (
             <motion.div
               key={card.id}
               className="absolute left-1/2 bottom-0"
               onMouseEnter={() => !isPlaying && setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
-              onClick={(e) => onClickCard(canPlay && !disabled, card, e)}
+              onClick={(e) => onClickCard(canClick, card, e)}
               animate={{
                 x: offset * spread,
                 y: isPlaying ? y : (isHovered ? -70 : y),
                 rotate: isPlaying ? rotate : (isHovered ? 0 : rotate),
                 scale: isPlaying ? 1 : (isHovered ? 1.08 : 1),
                 opacity: isPlaying ? 0 : 1,
+                filter: discardMode && isHovered
+                  ? "drop-shadow(0 0 14px rgba(248,113,113,.9))"
+                  : "drop-shadow(0 0 0 rgba(0,0,0,0))",
               }}
-              whileTap={canPlay ? { scale: 0.98 } : undefined}
+              whileTap={canClick ? { scale: 0.98 } : undefined}
               transition={{ type: "spring", stiffness: 260, damping: 22 }}
               style={{
                 translateX: "-50%",
                 transformOrigin: "bottom center",
                 zIndex: isHovered ? 999 : i,
-                cursor: canPlay ? "pointer" : "not-allowed",
+                cursor: canClick ? "pointer" : "not-allowed",
                 pointerEvents: playingCard ? "none" : "auto",
               }}
             >
-              <CardItem card={card} disabled={!canPlay || disabled} />
+              <CardItem card={card} disabled={!discardMode && (!canPlay || disabled)} />
             </motion.div>
           )
         })}

@@ -33,3 +33,4 @@ export enum CardCode {
 }
 
 export const MAX_HAND_SIZE = 5;
+export const MAX_HAND_LIMIT = 8;

@@ -26,6 +26,7 @@ interface BattleState {
   startBattle: () => void,
   drawCard: (card?: GameCard) => void,
   playCard: (card: GameCard) => void,
+  discardCard: (card: GameCard) => void,
   endTurn: () => void,
   resetBattle: () => void,
   startPlayerRound: () => void,
@@ -122,6 +123,14 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       newDraw.splice(0, 1);
     }
     set({ draw: newDraw, hand: newHand, discard: newDiscard });
+  },
+
+  discardCard: (card: GameCard) => {
+    set((s) => ({
+      hand: s.hand.filter((c) => c.id !== card.id),
+      discard: [...s.discard, card.id],
+    }));
+    get().addLog(`🗑️ Discarded ${card.name}`);
   },
 
   playCard: (card) => {
