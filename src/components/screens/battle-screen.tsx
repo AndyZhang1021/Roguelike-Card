@@ -10,6 +10,7 @@ import { MAX_HAND_LIMIT, type Card, type GameCard } from "../../types/card.ts";
 import { CardItem } from "../cards/card.tsx";
 import Hero from "../../assets/hero.png";
 import { IsZero } from "../../utilities/field-validation.ts";
+import { Tooltip } from "@radix-ui/themes";
 
 const BattleScreen = () => {
   const player = useGameStore((s) => s.player);
@@ -172,9 +173,16 @@ const BattleScreen = () => {
                   <p>{player.hp}/{player.maxHp}</p>
                 </div>
                 <div className="flex gap-3 items-center mt-2">
-                  {player.boons.map((b, i) => <div className="w-6 h-6 flex items-center justify-center border shadow-lg rounded border-gray-200">
-                    <span className="text-sm">{b.icon}</span>
-                  </div>)}
+                  {player.boons.map((b, i) => (
+                    <Tooltip key={i} content={<div>
+                      <p className="uppercase">{b.name}</p>
+                      <p className="text-xs font-light">{b.description}</p>
+                    </div>}>
+                      <div className="w-6 h-6 flex items-center justify-center border shadow-sm rounded border-gray-200 hover:border-amber-400 hover:shadow-amber-400">
+                        <span className="text-sm">{b.icon}</span>
+                      </div>
+                    </Tooltip>
+                  ))}
                 </div>
               </div>
             </div>
