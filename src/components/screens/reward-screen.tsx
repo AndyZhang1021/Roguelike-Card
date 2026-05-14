@@ -25,8 +25,10 @@ export const RewardScreen = () => {
   }, []);
 
   const proceedNext = () => {
-    if (!selectedBoon) return;
-    addBoon(selectedBoon);
+    if (availableBoons.length > 0) {
+      if (!selectedBoon) return;
+      else addBoon(selectedBoon);
+    }
     setScreen("map");
     nextFloor();
   }
@@ -47,7 +49,7 @@ export const RewardScreen = () => {
             const isSelected = selectedBoon?.name === boon.name;
             return (
               <button key={i} className={`border ${isSelected ? "border-amber-500 bg-amber-50" : ""} rounded p-4 mt-4 text-center`}
-              onClick={() => setSelectedBoon(boon)}>
+                onClick={() => setSelectedBoon(boon)}>
                 <p className="font-semibold">{boon.name}</p>
                 <p className="text-2xl">{boon.icon}</p>
                 <p className="font-light text-sm">{boon.description}</p>
@@ -59,7 +61,10 @@ export const RewardScreen = () => {
           })}
         </div>
         <center className="mt-6">
-          <button className="border px-4 py-2 rounded" disabled={!selectedBoon} onClick={proceedNext}>Next</button>
+          <button
+            className="border px-4 py-2 rounded"
+            disabled={availableBoons.length > 0 && !selectedBoon}
+            onClick={proceedNext}>Next</button>
         </center>
       </div>
     </Layout>

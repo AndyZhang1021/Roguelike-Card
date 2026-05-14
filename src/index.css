@@ -4,6 +4,10 @@
   --color-theme: #9468b6;
 }
 
+button {
+  cursor: pointer;
+}
+
 .diamond-rect {
   width: 180px;
   height: 50px;

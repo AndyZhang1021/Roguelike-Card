@@ -1,6 +1,15 @@
 import type { Boon } from "./boons"
+import type { StatusKind } from "./card"
 
 export type GameScreen = 'entry' | 'map' | 'battle' | 'reward' | 'gameover' | 'win'
+
+export interface StatusEntry {
+  kind: StatusKind
+  stacks: number
+  duration?: number  // 剩余回合数；undefined 表示永久
+}
+
+export type StatusList = StatusEntry[]
 
 export interface Enemy {
   name: string
@@ -9,7 +18,7 @@ export interface Enemy {
   maxHp: number
   block: number
   atk: number
-  status: Record<string, number>
+  status: StatusList
 }
 
 export interface Player {
@@ -17,5 +26,6 @@ export interface Player {
   maxHp: number
   block: number
   boons: Boon[]
+  status: StatusList
 }
 

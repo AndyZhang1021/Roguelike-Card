@@ -4,13 +4,14 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useGameStore } from "../../stores/game-store.ts"
 import { useBattleStore } from "../../stores/battle-store.ts";
 import { Layout } from "../shared/layout.tsx"
-import { Heart, Settings, Shield } from 'lucide-react';
+import { Box, Heart, LogOut, Settings, Shield } from 'lucide-react';
 import { EnemyCard } from "../enemies/enemy-card.tsx"
 import { MAX_HAND_LIMIT, type Card, type GameCard } from "../../types/card.ts";
 import { CardItem } from "../cards/card.tsx";
 import Hero from "../../assets/hero.png";
 import { IsZero } from "../../utilities/field-validation.ts";
 import { Tooltip } from "@radix-ui/themes";
+import { STATUSES } from "../../data/statuses.ts";
 
 const BattleScreen = () => {
   const player = useGameStore((s) => s.player);
@@ -120,10 +121,44 @@ const BattleScreen = () => {
         <div className="flex-1 h-1/2">
           {/* 顶部状态栏 */}
           <div className="border-b border-gray-200 flex items-center justify-between gap-4 text-[#666] p-4">
+            {/* 玩家状态 */}
+            <div className="relative">
+              <div className="flex items-center gap-1 border absolute bg-white">
+                <div className="border rounded h-28 w-20">
+                  <img src={Hero} className="w-full h-full object-contain" />
+                </div>
+                <div className="flex-1">
+                  <p className="mb-2">Adventurer</p>
+                  <div className="bg-red-400 rounde-sm text-white text-center relative w-52">
+                    <Heart strokeWidth={1} stroke="black" fill="red" className="absolute top-1/2 left-0 -translate-y-1/2" />
+                    <p>{player.hp}/{player.maxHp}</p> 
+                  </div>
+                  <div className="flex gap-2 items-center mt-2">
+                    {player.boons.map((b, i) => (
+                      <Tooltip key={i} content={<div>
+                        <p className="uppercase">{b.name}</p>
+                        <p className="text-xs font-light">{b.description}</p>
+                      </div>}>
+                        <div className="w-8 h-8 flex items-center justify-center border shadow-sm rounded border-gray-200 hover:border-amber-400 hover:shadow-amber-400">
+                          <span className="text-sm">{b.icon}</span>
+                        </div>
+                      </Tooltip>
+                    ))}
+                    {!IsZero(player.block) && <div className="bg-white border border-sky-500 rounded-full h-8 w-8 flex items-center justify-center relative">
+                      <p>🛡️</p>
+                      <p className="text-right absolute bottom-0 right-0 text-xs pr-0.5">{player.block}</p>
+                    </div>}
+                  </div>
+                </div>
+              </div>
+            </div>
             <p>Floor {floor}</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <button type="button" onClick={() => setScreen('map')}>
                 <Settings />
+              </button>
+              <button type="button" className="hover:text-gray-400" onClick={() => setScreen('map')}>
+                <LogOut />
               </button>
             </div>
           </div>
@@ -132,19 +167,28 @@ const BattleScreen = () => {
           <div>
             <center className="p-8">
               <EnemyCard enemy={enemy} />
-              <div className="text-gray-400 text-sm mt-2">
-                {enemy.hp}/{enemy.maxHp} HP · {enemy.block} block
+              <div className="flex items-center justify-center gap-4 mt-2">
+                {enemy.status.map((s) => {
+                  const status = STATUSES[s.kind];
+                  return (
+                    <Tooltip key={s.kind} content={<div>
+                      <p className="uppercase text-base">{status.name}</p>
+                      <p className="uppercase text-xs">{status.description}</p>
+                      {!IsZero(s.stacks) && <p className="text-xs font-light">Stacks: {s.stacks}</p>}
+                      {!IsZero(s.duration) && <p className="text-xs font-light">Round Duration: {s.duration}</p>}
+                    </div>}>
+                      <div className="border border-gray-200 bg-white rounded h-8 w-8 flex items-center justify-center relative">
+                        <p>{status.icon}</p>
+                        <p className="text-right absolute bottom-0 right-0 text-xs pr-px">{s.stacks}</p>
+                      </div>
+                    </Tooltip>
+                  )
+                })}
+                {enemy.block > 0 && <div className="bg-white border border-sky-500 rounded-full h-8 w-8 flex items-center justify-center relative">
+                  <p>🛡️</p>
+                  <p className="text-right absolute bottom-0 right-0 text-xs pr-0.5">{enemy.block}</p>
+                </div>}
               </div>
-
-              {/* 敌人 */}
-              {/* <div id="enemy-target">
-                {Object.entries(enemy.status).map(
-                  ([k, v]) =>
-                    v > 0 && (
-                      <StatusBadge key={k} label={`${k} ${v}`} debuff />
-                    )
-                )}
-              </div> */}
             </center>
           </div>
         </div>
@@ -157,35 +201,7 @@ const BattleScreen = () => {
                 <p>Energy</p>
               </div>
             </center>
-            {/* 能量 + 结束回合 */}
-            <div className="flex items-center gap-1 w-full border relative">
-              <div className="border rounded h-32 w-20">
-                <img src={Hero} className="w-full h-full object-contain" />
-              </div>
-              <div className="flex-1">
-                <p className="mb-2">Adventurer</p>
-                {!IsZero(player.block) && <div className="bg-sky-400 rounde-sm w-full text-white text-center relative">
-                  <Shield strokeWidth={1} stroke="black" fill="cyan" className="absolute top-1/2 left-0 -translate-y-1/2" />
-                  <p>{player.block}</p>
-                </div>}
-                <div className="bg-red-400 rounde-sm w-full text-white text-center relative">
-                  <Heart strokeWidth={1} stroke="black" fill="red" className="absolute top-1/2 left-0 -translate-y-1/2" />
-                  <p>{player.hp}/{player.maxHp}</p>
-                </div>
-                <div className="flex gap-3 items-center mt-2">
-                  {player.boons.map((b, i) => (
-                    <Tooltip key={i} content={<div>
-                      <p className="uppercase">{b.name}</p>
-                      <p className="text-xs font-light">{b.description}</p>
-                    </div>}>
-                      <div className="w-6 h-6 flex items-center justify-center border shadow-sm rounded border-gray-200 hover:border-amber-400 hover:shadow-amber-400">
-                        <span className="text-sm">{b.icon}</span>
-                      </div>
-                    </Tooltip>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* Log */}
             <div style={{
               background: '#f9f9f9', border: '1px solid #eee',
               borderRadius: 8, padding: '8px 12px',

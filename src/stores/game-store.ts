@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { GetCardDeck } from '../data/cards'
 import type { GameScreen, Player } from '../types/game'
-import type { Card, CardCode, GameCard } from '../types/card'
+import type { GameCard } from '../types/card'
 import type { Boon } from "../types/boons"
 import { ALL_BOONS } from "../data/boons"
 import { Shuffle } from "../utilities/general"
@@ -32,7 +32,7 @@ interface GameState {
 export const useGameStore = create<GameState>((set, get) => ({
   screen: 'entry',
   floor: 1,
-  player: { hp: 10, maxHp: 80, block: 0, boons: [] },
+  player: { hp: 10, maxHp: 80, block: 0, boons: [], status: [] },
   gold: 0,
   deck: [],
   log: [],
@@ -48,7 +48,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   startGame: () => {
     set({
       floor: 1,
-      player: { hp: 80, maxHp: 80, block: 0, boons:[] },
+      player: { hp: 80, maxHp: 80, block: 0, boons: [], status: [] },
       deck: [...GetCardDeck()],
       gold: 0,
       log: [],

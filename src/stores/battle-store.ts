@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import { BOSSES } from '../data/bosses'
 import { ApplyBoons } from '../data/boons'
+import { RunCardActions } from '../data/cards'
+import { DealDamage, DecayStatusesOnTurnEnd, TickStatusesOnTurnStart } from '../data/statuses'
 import { useGameStore } from './game-store'
 import { type Enemy, type GameScreen } from '../types/game'
-import { CardCode, CardType, MAX_HAND_SIZE, type GameCard } from '../types/card'
+import { CardType, MAX_HAND_SIZE, type GameCard } from '../types/card'
 import { CharacterType } from "../types/character"
 import { Shuffle } from "../utilities/general"
 import { BoonTrigger } from "../types/boons"
@@ -86,7 +88,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       ...bossData,
       maxHp: bossData.hp,
       block: 0,
-      status: {},
+      status: [],
     };
 
     const draw: GameCard[] = Shuffle(game.deck);
@@ -139,68 +141,28 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
     if (energy < card.cost || !enemy) return;
 
-    let newEnemy = { ...enemy };
-    let newPlayer = { ...player };
+    addLog(`${card.icon} ${card.name}`);
+
+    // 1. 跑卡牌 actions
+    const actionOutcome = RunCardActions(card, player, enemy);
+    let newPlayer = actionOutcome.player;
+    let newEnemy = actionOutcome.enemy;
     let newDisabledCards = [...disabledCards];
+    actionOutcome.logs.forEach(addLog);
 
-    let dmg = 0;
-    switch (card.code) {
-      case CardCode.STRIKE:
-        dmg = 6;
-        newEnemy.hp -= dmg;
-        addLog('⚔️ Strike: 6 dmg');
-        break;
-      case CardCode.BASH:
-        dmg = 8;
-        newEnemy.hp -= dmg;
-        newEnemy.status.weak = (newEnemy.status.weak || 0) + 2
-        addLog('🔨 Bash: 8 dmg + Weak')
-        break
-      case CardCode.DEFEND:
-        newPlayer.block += 5;
-        addLog('🛡️ Defend: +5 block')
-        break
-      case CardCode.FIREBALL:
-        dmg = 12;
-        newEnemy.hp -= dmg;
-        addLog('🔥 Fireball: 12 dmg')
-        break
-      case CardCode.HEAL:
-        newPlayer.hp = Math.min(newPlayer.maxHp, newPlayer.hp + 6);
-        addLog('💊 Heal: +6 HP')
-        break
-      case CardCode.POISON:
-        newEnemy.status.poison = (newEnemy.status.poison || 0) + 3;
-        addLog('🪶 Poison: +3')
-        break
-      case CardCode.DOUBLE:
-        dmg = 8;
-        newEnemy.hp -= dmg;
-        addLog('⚡ Twin Strike: 4+4 dmg')
-        break
-      case CardCode.ARMOR:
-        newPlayer.block += 12;
-        addLog('🏰 Fortify: +12 block')
-        break
-      case CardCode.BLAST:
-        dmg = 20;
-        newEnemy.hp -= dmg;
-        addLog('💫 Arcane Blast: 20 dmg')
-        break
-    }
-
+    // 2. 攻击牌触发 ON_ATTACK boon
     if (card.type === CardType.ATTACK) {
-      const outcome = ApplyBoons(BoonTrigger.ON_ATTACK, {
+      const boonOutcome = ApplyBoons(BoonTrigger.ON_ATTACK, {
         player: newPlayer,
         enemy: newEnemy,
         disabledCards: newDisabledCards,
         card,
-        dmg,
+        dmg: actionOutcome.dmgToEnemy,
       });
-      newPlayer = outcome.player;
-      newEnemy = outcome.enemy;
-      newDisabledCards = outcome.disabledCards;
-      outcome.logs.forEach(addLog);
+      newPlayer = boonOutcome.player;
+      newEnemy = boonOutcome.enemy;
+      newDisabledCards = boonOutcome.disabledCards;
+      boonOutcome.logs.forEach(addLog);
     }
 
     set((s) => ({
@@ -208,13 +170,14 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       hand: s.hand.filter((c) => c.id !== card.id),
       discard: [...s.discard, card.id],
       enemy: newEnemy,
-      dmgCaused: dmg,
-      disabledCards: newDisabledCards
+      dmgCaused: actionOutcome.dmgToEnemy,
+      disabledCards: newDisabledCards,
     }))
 
     game.updatePlayer(newPlayer)
 
     if (newEnemy.hp <= 0) goScreen(game, "reward");
+    else if (newPlayer.hp <= 0) goScreen(game, "gameover");
   },
 
   endTurn: () => {
@@ -222,17 +185,22 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     const game = useGameStore.getState();
     if (!enemy) return;
 
+    // ROUND_END boons
     const outcome = ApplyBoons(BoonTrigger.ROUND_END, {
       player: game.player,
       enemy,
       disabledCards,
     });
     outcome.logs.forEach(addLog);
-    game.updatePlayer(outcome.player);
+
+    // 玩家回合结束：状态衰减（玩家身上的 Weak / Vulnerable -1）
+    const decayedPlayer = DecayStatusesOnTurnEnd(outcome.player);
+
+    game.updatePlayer(decayedPlayer);
     set({ enemy: outcome.enemy, disabledCards: outcome.disabledCards });
     for (let i = 0; i < outcome.drawCards; i++) drawCard();
 
-    if (outcome.player.hp <= 0) {
+    if (decayedPlayer.hp <= 0) {
       goScreen(game, "gameover");
       return;
     }
@@ -256,92 +224,79 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       .filter((c) => c.round > 0);
 
     addLog(`Round ${newRound}: Player turn start!`);
+    set({ turn: CharacterType.PLAYER });
 
-    const outcome = ApplyBoons(BoonTrigger.ROUND_START, {
-      player: game.player,
+    // 玩家回合开始：tick 玩家状态（如 Poison 扣血）
+    const playerTick = TickStatusesOnTurnStart(game.player);
+    playerTick.logs.forEach(addLog);
+
+    // ROUND_START boons
+    const boonOutcome = ApplyBoons(BoonTrigger.ROUND_START, {
+      player: playerTick.target,
       enemy,
       disabledCards: tickedDisabled,
     });
-    outcome.logs.forEach(addLog);
-    game.updatePlayer(outcome.player);
+    boonOutcome.logs.forEach(addLog);
+    game.updatePlayer(boonOutcome.player);
     set({
       round: newRound,
-      enemy: outcome.enemy,
-      disabledCards: outcome.disabledCards,
+      enemy: boonOutcome.enemy,
+      disabledCards: boonOutcome.disabledCards,
     });
 
     drawCard();
-    for (let i = 0; i < outcome.drawCards; i++) drawCard();
+    for (let i = 0; i < boonOutcome.drawCards; i++) drawCard();
 
-    if (outcome.player.hp <= 0) goScreen(game, "gameover");
+    if (boonOutcome.player.hp <= 0) goScreen(game, "gameover");
   },
 
   startEnemyRound: () => {
-    const { enemy, maxEnergy, draw, addLog, round, hand, dmgCaused, dmgTaken } = get();
+    const { enemy, maxEnergy, addLog, round, dmgCaused, dmgTaken } = get();
     const game = useGameStore.getState();
     const player = game.player;
 
     if (!enemy) return;
-    let newEnemy = { ...enemy, status: { ...enemy.status } };
+    let newEnemy: Enemy = { ...enemy, status: [...enemy.status] };
     let newPlayer = { ...player };
     let newDmgCaused = dmgCaused;
     let newDmgTaken = dmgTaken;
-    let newDraw = [...draw];
-    let newHand: GameCard[] = [...hand];
 
-    const updateState = () => {
+    const commit = () => {
       set({
         enemy: newEnemy,
-        hand: newHand,
         energy: maxEnergy,
-        draw: newDraw,
         dmgCaused: newDmgCaused,
         dmgTaken: newDmgTaken,
       });
       game.updatePlayer(newPlayer);
     }
-    // ✅ 1. 玩家回合结束 → 手牌进 discard
-    // let newDiscard = [...discard, ...hand.map(c => c.id)]
+
     addLog(`Round ${round}: 👹 ${enemy.name} turn start!`);
     set({ turn: CharacterType.ENEMY });
 
-    // ✅ 2. 毒伤
-    if (newEnemy.status.poison) {
-      newEnemy.hp -= newEnemy.status.poison
-      newDmgCaused += newEnemy.status.poison;
-      addLog(`☠️ Poison: ${newEnemy.status.poison} dmg`)
-      newEnemy.status.poison = Math.max(0, newEnemy.status.poison - 1)
-    }
+    // 1. 敌人回合开始：tick 敌人状态（如 Poison 扣血）
+    const enemyTick = TickStatusesOnTurnStart(newEnemy);
+    newEnemy = enemyTick.target;
+    enemyTick.logs.forEach(addLog);
 
     if (newEnemy.hp <= 0) {
-      updateState();
-      goScreen(game, "reward");
-      return;
+      commit();
+      return goScreen(game, "reward");
+    }
+    // 2. 敌人攻击（dmgDealt 已经过 Weak / Vulnerable / Strength / 玩家 block）
+    const { defender, dmgDealt } = DealDamage(newEnemy.atk, newEnemy, newPlayer);
+    newDmgCaused += dmgDealt;
+    newDmgTaken += dmgDealt;
+    addLog(`👹 ${enemy.name} attacks ${dmgDealt} dmg`);
+    newPlayer = defender;
+
+    if (defender.hp <= 0) {
+      commit();
+      return goScreen(game, "gameover");
     }
 
-    // ✅ 3. 敌人攻击
-    let atk = newEnemy.atk;
-
-    if (newEnemy.status.weak) {
-      atk = Math.floor(atk * 0.75);
-      newDmgCaused += atk;
-      newEnemy.status.weak--;
-    }
-
-    const absorbed = Math.min(newPlayer.block, atk);
-    const dmg = atk - absorbed;
-
-    newPlayer.hp -= dmg;
-    newDmgTaken += dmg;
-    newPlayer.block = 0;
-
-    addLog(`👹 ${enemy.name} attacks ${atk} dmg`);
-
-    if (newPlayer.hp <= 0) {
-      updateState();
-      goScreen(game, "gameover");
-      return;
-    }
-    updateState();
+    // 3. 敌人回合结束：状态衰减（Weak / Vulnerable -1 stack）
+    newEnemy = DecayStatusesOnTurnEnd(newEnemy);
+    commit();
   },
 }))
