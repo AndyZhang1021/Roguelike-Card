@@ -29,8 +29,8 @@ export const STATUSES: Record<StatusKind, StatusDef> = {
     id: StatusKind.VULNERABLE,
     name: 'Vulnerable',
     icon: '🎯',
-    description: 'Take 50% more damage',
-    modifyIncomingDamage: (dmg) => Math.floor(dmg * 1.5),
+    description: 'Take 1 more damage',
+    modifyIncomingDamage: (dmg) => Math.floor(dmg  + 1),
     stacksDecayPerTurn: true,
   },
   [StatusKind.POISON]: {

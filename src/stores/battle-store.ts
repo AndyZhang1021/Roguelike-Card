@@ -4,11 +4,10 @@ import { ApplyBoons } from '../data/boons'
 import { RunCardActions } from '../data/cards'
 import { DealDamage, DecayStatusesOnTurnEnd, TickStatusesOnTurnStart } from '../data/statuses'
 import { useGameStore } from './game-store'
-import { type Enemy, type GameScreen } from '../types/game'
+import { RoundPhase, type Enemy, type GameScreen } from '../types/game'
 import { CardType, MAX_HAND_SIZE, type GameCard } from '../types/card'
 import { CharacterType } from "../types/character"
 import { Shuffle } from "../utilities/general"
-import { BoonTrigger } from "../types/boons"
 
 interface BattleState {
   enemy: Enemy | null,
@@ -152,7 +151,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
     // 2. 攻击牌触发 ON_ATTACK boon
     if (card.type === CardType.ATTACK) {
-      const boonOutcome = ApplyBoons(BoonTrigger.ON_ATTACK, {
+      const boonOutcome = ApplyBoons(RoundPhase.ON_ATTACK, {
         player: newPlayer,
         enemy: newEnemy,
         disabledCards: newDisabledCards,
@@ -186,7 +185,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     if (!enemy) return;
 
     // ROUND_END boons
-    const outcome = ApplyBoons(BoonTrigger.ROUND_END, {
+    const outcome = ApplyBoons(RoundPhase.ROUND_END, {
       player: game.player,
       enemy,
       disabledCards,
@@ -231,7 +230,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     playerTick.logs.forEach(addLog);
 
     // ROUND_START boons
-    const boonOutcome = ApplyBoons(BoonTrigger.ROUND_START, {
+    const boonOutcome = ApplyBoons(RoundPhase.ROUND_START, {
       player: playerTick.target,
       enemy,
       disabledCards: tickedDisabled,

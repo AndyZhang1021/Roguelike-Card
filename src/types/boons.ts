@@ -1,17 +1,11 @@
 import type { GameCard } from "./card";
-import type { Enemy, Player } from "./game";
+import type { Enemy, Player, RoundPhase } from "./game";
 
 export enum BoonType {
   BLESSED = 'blessed',     // 好运
   TWISTED = 'twisted',     // 半益
   CORRUPTED = 'corrupted', // 有害
   CHAOTIC = 'chaotic',     // 混乱 - 随机性强
-}
-
-export enum BoonTrigger {
-  ROUND_START = 'round_start', // 玩家回合开始（抽牌前）
-  ROUND_END = 'round_end',     // 玩家按 End Turn 时
-  ON_ATTACK = 'on_attack',     // 出攻击牌时
 }
 
 export interface BoonContext {
@@ -38,5 +32,5 @@ export interface Boon {
   icon: string;
   description: string;
   type: BoonType;
-  triggers: Partial<Record<BoonTrigger, BoonEffect>>;
+  triggers: Partial<Record<RoundPhase, BoonEffect>>;
 }
